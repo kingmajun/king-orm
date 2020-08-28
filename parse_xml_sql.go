@@ -3,8 +3,8 @@ package king_orm
 import (
 	"encoding/xml"
 	"github.com/antonmedv/expr"
+	"github.com/kingmajun/king-orm/model"
 	"io"
-	"king.plugin/king-orm/model"
 	"strings"
 )
 
@@ -118,7 +118,7 @@ func parse(r io.Reader) *node {
 }
 
 //创建一个带有参数的sql
-func CreateParamsSql(params map[string]interface{},elements ...element)(sql string)  {
+func createParamsSql(params map[string]interface{},elements ...element)(sql string)  {
 	sql = ""
 	if len(elements)==1 {
 		elem := elements[0]
@@ -134,7 +134,7 @@ func CreateParamsSql(params map[string]interface{},elements ...element)(sql stri
 					return
 				}
 				if ok.(bool) {
-					sql += " "+CreateParamsSql(params,node.Elements...)+" "
+					sql += " "+createParamsSql(params,node.Elements...)+" "
 				}
 
 			}
@@ -142,7 +142,7 @@ func CreateParamsSql(params map[string]interface{},elements ...element)(sql stri
 		return
 	}
 	for _, elem := range elements {
-		sql += CreateParamsSql(params,elem)
+		sql += createParamsSql(params,elem)
 	}
 	return
 }

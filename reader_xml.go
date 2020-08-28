@@ -32,6 +32,7 @@ type sqlMapper struct {
 	Deletes  []methodObj `xml:"delete"`
 }
 
+//方法
 type Method struct {
 	Namespace string
 	Id string
@@ -42,6 +43,15 @@ type Osm struct {
 	sqlMapperMap map[string]*Method
 }
 
+var formatDateTime = "2006-01-02 15:04:05"
+
+type sqlFragment struct {
+	content     string
+	paramValue  interface{}
+	paramValues []interface{}
+	isParam     bool
+	isIn        bool
+}
 
 
 func xmlBuilder(xmlPath string,ch chan sqlMapper) {
@@ -150,48 +160,6 @@ func ReaderConfigBuilder(pathDir string)(osm *Osm,err error){
 	return osm,nil
 }
 
-//组装sqlmapper
-func conversSqlMapper(mapper *sqlMapper)(sqlMapperMap map[string]*Method,err error){
-	sqlMapperMap = make(map[string]*Method)
-	for _,v := range mapper.Selects{
-		key := fmt.Sprintf("%v.%v",mapper.Namespace,v.Id)
-		v1 := new(Method)
-		v1.Sql = fmt.Sprintf("<select id=\"%v\">%v</select>",v.Id,v.SqlXml)
-		v1.Namespace = mapper.Namespace
-		v1.Id = v.Id
-		sqlMapperMap[key] = v1
-	}
-	for _,v := range mapper.Inserts{
-		key := fmt.Sprintf("%v.%v",mapper.Namespace,v.Id)
-		v1 := new(Method)
-		v1.Sql = fmt.Sprintf("<insert id=\"%v\">%v</insert>",v.Id,v.SqlXml)
-		v1.Namespace = mapper.Namespace
-		v1.Id = v.Id
-		sqlMapperMap[key] = v1
-	}
-
-	for _,v := range mapper.Deletes{
-		key := fmt.Sprintf("%v.%v",mapper.Namespace,v.Id)
-		v1 := new(Method)
-		v1.Sql =  fmt.Sprintf("<delete id=\"%v\">%v</delete>",v.Id,v.SqlXml)
-		v1.Namespace = mapper.Namespace
-		v1.Id = v.Id
-		sqlMapperMap[key] = v1
-	}
-
-	for _,v := range mapper.Updates{
-		key := fmt.Sprintf("%v.%v",mapper.Namespace,v.Id)
-		v1 := new(Method)
-		v1.Sql =  fmt.Sprintf("<update id=\"%v\">%v</update>",v.Id,v.SqlXml)
-		v1.Namespace = mapper.Namespace
-		v1.Id = v.Id
-		sqlMapperMap[key] = v1
-	}
-
-	return
-}
-
-
 
 
 func (o *Osm)GetMethodSql(id string)(v *Method,err error){
@@ -204,16 +172,10 @@ func (o *Osm)GetMethodSql(id string)(v *Method,err error){
 	return
 }
 
-type sqlFragment struct {
-	content     string
-	paramValue  interface{}
-	paramValues []interface{}
-	isParam     bool
-	isIn        bool
-}
+
 //解析sql，返回sql和对应的参数值
 //sqlOrg=select * from im_user where username = #{username}
-func ReadSQLParamsBySQL1(sqlOrg string, params ...interface{}) (sql string, sqlParams []interface{}, err error) {
+func readSQLParamsBySQL(sqlOrg string, params ...interface{}) (sql string, sqlParams []interface{}, err error) {
 	var param interface{}
 	paramsSize := len(params)
 	if paramsSize > 0 {
@@ -367,7 +329,7 @@ func timeFormat(t time.Time, format string) string {
 	return t.Format(format)
 }
 
-var formatDateTime = "2006-01-02 15:04:05"
+
 
 func setDataToParamName(paramName *sqlFragment, v reflect.Value) {
 	if paramName.isIn {
@@ -442,4 +404,13 @@ func  DollarTokenHandler(sqlStr string,params map[string]interface{})(sql string
 	finalSqlStr += sqlStr
 	finalSqlStr = strings.Trim(finalSqlStr, " ")
 	return finalSqlStr
+}
+
+//获取执行SQL信息
+func GetExecSqlInfo(sqlStr string,params map[string]interface{}) (sql string, sqlParams []interface{}, err error)  {
+	r := strings.NewReader(sqlStr)
+	node  := parse(r)
+	orgSql  := createParamsSql(params,node.Elements...)
+	sql,sqlParams,err = readSQLParamsBySQL(orgSql,params)
+	return
 }

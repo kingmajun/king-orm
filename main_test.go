@@ -2,7 +2,6 @@ package king_orm
 
 import (
 	"os"
-	"strings"
 	"testing"
 )
 
@@ -11,16 +10,14 @@ func Test(t *testing.T) {
 	path := ROOT+"/demo/mapper"
 	v,_ := ReaderConfigBuilder(path)
 
-
+	//获取sql
 	m,_ := v.GetMethodSql("demo.mapper.user.getuser")
-	r := strings.NewReader(m.Sql)
-	node  := parse(r)
+
+	//把sql转成可以执行的sql
 	params := map[string]interface{}{
 		"username": "majun",
 	}
-	sql  := CreateParamsSql(params,node.Elements...)
-	sql1,sqlParams,_ :=ReadSQLParamsBySQL1(sql,params)
-	println(sql)
+	sql1,sqlParams,_ := GetExecSqlInfo(m.Sql,params)
 	println(sql1)
 	println(sqlParams)
 

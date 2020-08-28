@@ -1,4 +1,4 @@
-module king.plugin/king-orm
+module github.com/kingmajun/king-orm
 
 go 1.13
 
