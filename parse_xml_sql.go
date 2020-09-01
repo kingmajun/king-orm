@@ -2,6 +2,7 @@ package king_orm
 
 import (
 	"encoding/xml"
+	"fmt"
 	"github.com/antonmedv/expr"
 	"github.com/kingmajun/king-orm/model"
 	"io"
@@ -130,7 +131,7 @@ func createParamsSql(params map[string]interface{},elements ...element)(sql stri
 				testVal := node.Attrs["test"].Value
 				ok,err := expr.Eval(testVal, params)
 				if err !=nil{
-					println(err)
+					fmt.Printf("%v",err)
 					return
 				}
 				if ok.(bool) {
@@ -146,4 +147,5 @@ func createParamsSql(params map[string]interface{},elements ...element)(sql stri
 	}
 	return
 }
+
 

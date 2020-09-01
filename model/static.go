@@ -7,3 +7,5 @@ const (
 	ELEMTYPNODE ElemType = "node" // 节点子节点
 )
 
+//定义xml中标签符号
+var XMLTAG = []string{"sqlMapper","select","update","insert","delete","if"}

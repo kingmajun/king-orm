@@ -39,7 +39,7 @@ type Method struct {
 	Sql string
 }
 
-type Osm struct {
+type SqlMapping struct {
 	sqlMapperMap map[string]*Method
 }
 
@@ -53,22 +53,29 @@ type sqlFragment struct {
 	isIn        bool
 }
 
-
+//读取xml文件内容
 func xmlBuilder(xmlPath string,ch chan sqlMapper) {
+	//验证xml格式
+	err := validateXml(xmlPath)
+	if err!=nil {
+		panic(err)
+	}
 	byte,err := ioutil.ReadFile(xmlPath)
 	if err !=nil{
 		logrus.Error("not file error:",err.Error())
 		return
 	}
-	s := &sqlMapper{}
-	err = xml.Unmarshal(byte, &s)
+	mapper := &sqlMapper{}
+	err = xml.Unmarshal(byte, &mapper)
 	if err != nil {
 		logrus.Error("reader xml error:",err)
 		return
 	}
-	ch <- *s
+	ch <- *mapper
 	return
 }
+
+
 
 //读取pathDir目录下所有SQLMapper路径
 func readerMapperPath(pathDir string)(xmlPath []string,err error){
@@ -90,16 +97,13 @@ func readerMapperPath(pathDir string)(xmlPath []string,err error){
 }
 
 //加载xml
-func ReaderConfigBuilder(pathDir string)(osm *Osm,err error){
-
-	osm  = new(Osm)
-
+func ReaderConfigBuilder(pathDir string)(sqlMapping *SqlMapping,err error){
+	sqlMapping  = new(SqlMapping)
 	xmlPath,err := readerMapperPath(pathDir)
 	if err !=nil{
 		fmt.Printf("not found xml  file")
 		return
 	}
-
 	chs := make([] chan sqlMapper, len(xmlPath))
 	defer func() {
 		for _, c := range chs {
@@ -108,12 +112,10 @@ func ReaderConfigBuilder(pathDir string)(osm *Osm,err error){
 			}
 		}
 	}()
-
 	for i:=0;i<len(xmlPath);i++{
 		chs[i] = make(chan sqlMapper)
 		go xmlBuilder(xmlPath[i],chs[i])
 	}
-
 	sqlMapperMap := make(map[string]*Method)
 	// 获取结果
 	for _, ch := range chs {
@@ -121,6 +123,9 @@ func ReaderConfigBuilder(pathDir string)(osm *Osm,err error){
 
 		for _,v := range mapper.Selects{
 			key := fmt.Sprintf("%v.%v",mapper.Namespace,v.Id)
+			if _, ok := sqlMapperMap[key]; ok {
+				panic(fmt.Sprintf("sql mapper id not unique,[id:%v] ",key))
+			}
 			v1 := new(Method)
 			v1.Sql = fmt.Sprintf("<select id=\"%v\">%v</select>",v.Id,v.SqlXml)
 			v1.Namespace = mapper.Namespace
@@ -129,6 +134,9 @@ func ReaderConfigBuilder(pathDir string)(osm *Osm,err error){
 		}
 		for _,v := range mapper.Inserts{
 			key := fmt.Sprintf("%v.%v",mapper.Namespace,v.Id)
+			if _, ok := sqlMapperMap[key]; ok {
+				panic(fmt.Sprintf("sql mapper id not unique,[id:%v] ",key))
+			}
 			v1 := new(Method)
 			v1.Sql = fmt.Sprintf("<insert id=\"%v\">%v</insert>",v.Id,v.SqlXml)
 			v1.Namespace = mapper.Namespace
@@ -138,6 +146,9 @@ func ReaderConfigBuilder(pathDir string)(osm *Osm,err error){
 
 		for _,v := range mapper.Deletes{
 			key := fmt.Sprintf("%v.%v",mapper.Namespace,v.Id)
+			if _, ok := sqlMapperMap[key]; ok {
+				panic(fmt.Sprintf("sql mapper id not unique,[id:%v] ",key))
+			}
 			v1 := new(Method)
 			v1.Sql =  fmt.Sprintf("<delete id=\"%v\">%v</delete>",v.Id,v.SqlXml)
 			v1.Namespace = mapper.Namespace
@@ -147,6 +158,9 @@ func ReaderConfigBuilder(pathDir string)(osm *Osm,err error){
 
 		for _,v := range mapper.Updates{
 			key := fmt.Sprintf("%v.%v",mapper.Namespace,v.Id)
+			if _, ok := sqlMapperMap[key]; ok {
+				panic(fmt.Sprintf("sql mapper id not unique,[id:%v] ",key))
+			}
 			v1 := new(Method)
 			v1.Sql =  fmt.Sprintf("<update id=\"%v\">%v</update>",v.Id,v.SqlXml)
 			v1.Namespace = mapper.Namespace
@@ -154,16 +168,14 @@ func ReaderConfigBuilder(pathDir string)(osm *Osm,err error){
 			sqlMapperMap[key] = v1
 		}
 	}
-
-	osm.sqlMapperMap = sqlMapperMap
-
-	return osm,nil
+	sqlMapping.sqlMapperMap = sqlMapperMap
+	return sqlMapping,nil
 }
 
 
 
-func (o *Osm)GetMethodSql(id string)(v *Method,err error){
-	v,ok := o.sqlMapperMap[id]
+func (s *SqlMapping)GetMethodSql(id string)(v *Method,err error){
+	v,ok := s.sqlMapperMap[id]
 	if !ok {
 		//创建异常
 		err = errors.New(fmt.Sprintf("%v id is not found \n",id))

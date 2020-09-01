@@ -2,11 +2,11 @@
 <sqlMapper namespace="demo.mapper.user">
     <select  id="getuser">
         select * from user2
-        <if test="username=='majun'">
-            where username = #{username} and 1=1
+        <if test="name !='' and name != nil">
+            where username = #{name} and 1=1
         </if>
     </select>
-    <update id="update">
+    <update id="getuser">
         update user set username= #{username} where id=#{id} and in (${params})
     </update>
     <insert id="add">

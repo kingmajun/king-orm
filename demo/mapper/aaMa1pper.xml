@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<sqlMapper namespace="demo.mapper.role11">
+    <select id="getRole">
+        select * from role
+    </select>
+</sqlMapper>
