@@ -6,7 +6,7 @@
             where username = #{name} and 1=1
         </if>
     </select>
-    <update id="getuser">
+    <update id="get1user">
         update user set username= #{username} where id=#{id} and in (${params})
     </update>
     <insert id="add">
